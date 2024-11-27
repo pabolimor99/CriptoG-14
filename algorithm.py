@@ -38,6 +38,7 @@ def scramble_image(image, indices_x, indices_y):
     scrambled = scrambled[:, indices_y]
     return scrambled
 
+#TODO: Cambiar random_data por datos generados por logistic_sine_map
 def pixel_adaptive_diffusion(image, random_data, modulus=255):
     height, width = image.shape
     diffused = np.copy(image)
