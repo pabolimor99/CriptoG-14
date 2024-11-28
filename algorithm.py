@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
+from key_gen import generate_round_keys
 import pillow_avif
 
 def insertar_datos_aleatorios(imagen):
@@ -24,6 +25,7 @@ def logistic_sine_map(x0, r, iterations):
         seq.append(x)
     return np.array(seq)
 
+#TODO: Utilizar mismo scrambling que el paper
 def generate_scrambling_matrix(height, width, x0, r):
     seq_x = logistic_sine_map(x0, r, height)
     seq_y = logistic_sine_map(x0, r, width)
@@ -31,6 +33,7 @@ def generate_scrambling_matrix(height, width, x0, r):
     indices_y = np.argsort(seq_y)
     return indices_x, indices_y
 
+#TODO: Utilizar mismo scrambling que el paper
 def scramble_image(image, indices_x, indices_y):
     scrambled = image[indices_x, :]
     scrambled = scrambled[:, indices_y]
@@ -87,7 +90,8 @@ def decrypt_image(encrypted_image, key, encryption_data):
 
     diffused_image = inverse_pixel_adaptive_diffusion(encrypted_image, random_data)
 
-    # Invertir las permutaciones de scrambling
+    #TODO: Utilizar mismo scrambling que el paper
+
     inv_indices_x = invert_permutation(indices_x)
     inv_indices_y = invert_permutation(indices_y)
 
@@ -95,6 +99,9 @@ def decrypt_image(encrypted_image, key, encryption_data):
     unscrambled = unscrambled[:, inv_indices_y]
 
     return unscrambled
+
+import secrets
+
 
 def mostrar_histogramas(imagen_original, imagen_cifrada, imagen_descifrada):
     plt.figure(figsize=(15, 5))
@@ -121,25 +128,26 @@ def mostrar_histogramas(imagen_original, imagen_cifrada, imagen_descifrada):
     plt.show()
 
 if __name__ == "__main__":
-    # Cargar imagen
-    image = Image.open('r2.avif').convert('L')  # Convertir a escala de grises
+
+    image = Image.open('r2.avif').convert('L')
     image = np.array(image)
 
-    # Clave de cifrado
-    key = (0.5, 3.99)  # x0, r
+    (x1, r1), (x2, r2) = generate_round_keys()
+    key1 = (x1, r1)
+    key2 = (x2, r2)
 
     imagen_expandida = insertar_datos_aleatorios(image)
 
-    # Cifrar imagen
-    encrypted_image, encryption_data = encrypt_image(imagen_expandida, key)
+    encrypted_image_1, encryption_data_1 = encrypt_image(imagen_expandida, key1)
 
-    # Descifrar imagen
-    decrypted_image = decrypt_image(encrypted_image, key, encryption_data)
+    encrypted_image_2, encryption_data_2 = encrypt_image(encrypted_image_1, key2)
 
-    # Remover el padding
-    decrypted_image_no_padding = quitar_datos_aleatorios(decrypted_image)
+    decrypted_image_1 = decrypt_image(encrypted_image_2, key2, encryption_data_2)
 
-    # Mostrar la imagen original, cifrada y descifrada
+    decrypted_image_2 = decrypt_image(decrypted_image_1, key1, encryption_data_1)
+
+    decrypted_image_no_padding = quitar_datos_aleatorios(decrypted_image_2)
+
     plt.figure(figsize=(15, 5))
 
     plt.subplot(1, 3, 1)
@@ -148,8 +156,8 @@ if __name__ == "__main__":
     plt.axis('off')
 
     plt.subplot(1, 3, 2)
-    plt.imshow(encrypted_image, cmap='gray')
-    plt.title('Imagen Cifrada')
+    plt.imshow(encrypted_image_2, cmap='gray')
+    plt.title('Imagen Cifrada (2 rondas)')
     plt.axis('off')
 
     plt.subplot(1, 3, 3)
@@ -161,4 +169,5 @@ if __name__ == "__main__":
     plt.show()
 
     # Mostrar histogramas
-    mostrar_histogramas(image, encrypted_image, decrypted_image_no_padding)
+    mostrar_histogramas(image, encrypted_image_2, decrypted_image_no_padding)
+
