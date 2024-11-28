@@ -1,8 +1,11 @@
 import numpy as np
 
 def pixel_adaptive_diffusion(image, random_data, modulus=256):
+    """
+    Aplica difusión adaptativa de píxeles para cifrar la imagen.
+    """
     height, width = image.shape
-    diffused = np.copy(image).astype(np.uint32)
+    diffused = np.copy(image).astype(np.int32)
     for i in range(height):
         for j in range(width):
             if i == 0 and j == 0:
@@ -11,11 +14,12 @@ def pixel_adaptive_diffusion(image, random_data, modulus=256):
                 diffused[i, j] = (diffused[i, j - 1] + image[i, j] + random_data[i, j]) % modulus
             else:
                 diffused[i, j] = (diffused[i - 1, j] + image[i, j] + random_data[i, j]) % modulus
-    return diffused
+    return diffused.astype(np.uint8)  # Convertir a uint8 para mantener los valores en rango
 
 def inverse_pixel_adaptive_diffusion(encrypted_image, random_data, modulus=256):
+
     height, width = encrypted_image.shape
-    diffused = np.copy(encrypted_image).astype(np.uint32)
+    diffused = np.copy(encrypted_image).astype(np.int32)
 
     for i in range(height - 1, -1, -1):
         for j in range(width - 1, -1, -1):
@@ -26,4 +30,4 @@ def inverse_pixel_adaptive_diffusion(encrypted_image, random_data, modulus=256):
             else:
                 diffused[i, j] = (encrypted_image[i, j] - diffused[i - 1, j] - random_data[i, j]) % modulus
 
-    return diffused
+    return diffused.astype(np.uint8)
