@@ -9,7 +9,7 @@ from util.cypher import encrypt_image, decrypt_image
 
 if __name__ == "__main__":
 
-    image = Image.open('./images/r2.avif').convert('L')
+    image = Image.open('./images/fali.jpg').convert('L')
     image = np.array(image)
 
     (x1, r1), (x2, r2) = generate_round_keys()
