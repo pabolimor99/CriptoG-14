@@ -14,7 +14,7 @@ def insertar_datos_aleatorios(imagen):
     return imagen_exp
 
 def quitar_datos_aleatorios(imagen):
-    return imagen[2:-2, 2:-2]
+    return imagen[1:-1, 1:-1]
 
 def logistic_sine_map(x0, r, iterations):
     seq = []
@@ -24,7 +24,6 @@ def logistic_sine_map(x0, r, iterations):
         seq.append(x)
     return np.array(seq)
 
-#TODO: Utilizar mismo scrambling que el paper
 def generate_scrambling_matrix(height, width, x0, r):
     seq_x = logistic_sine_map(x0, r, height)
     seq_y = logistic_sine_map(x0, r, width)
@@ -32,16 +31,20 @@ def generate_scrambling_matrix(height, width, x0, r):
     indices_y = np.argsort(seq_y)
     return indices_x, indices_y
 
-#TODO: Utilizar mismo scrambling que el paper
 def scramble_image(image, indices_x, indices_y):
     scrambled = image[indices_x, :]
     scrambled = scrambled[:, indices_y]
     return scrambled
 
-#TODO: Cambiar random_data por datos generados por logistic_sine_map
+def invert_permutation(indices):
+    inverse = np.zeros_like(indices)
+    for i, idx in enumerate(indices):
+        inverse[idx] = i
+    return inverse
+
 def pixel_adaptive_diffusion(image, random_data, modulus=255):
     height, width = image.shape
-    diffused = np.copy(image)
+    diffused = np.copy(image).astype(np.int32)
     for i in range(height):
         for j in range(width):
             if i == 0 and j == 0:
@@ -52,24 +55,20 @@ def pixel_adaptive_diffusion(image, random_data, modulus=255):
                 diffused[i, j] = (diffused[i - 1, j] + image[i, j] + random_data[i, j]) % modulus
     return diffused
 
-def inverse_pixel_adaptive_diffusion(encrypted_image, random_data, F=255):
+def inverse_pixel_adaptive_diffusion(encrypted_image, random_data, modulus=255):
     height, width = encrypted_image.shape
-    diffused = np.copy(encrypted_image)
+    diffused = np.copy(encrypted_image).astype(np.int32)
 
-    
     for i in range(height - 1, -1, -1):
         for j in range(width - 1, -1, -1):
             if i == 0 and j == 0:
-                
-                diffused[i, j] = (encrypted_image[i, j] - random_data[i, j]) % F
+                diffused[i, j] = (encrypted_image[i, j] - random_data[i, j]) % modulus
             elif i == 0:
-                diffused[i, j] = (encrypted_image[i, j] - diffused[i, j - 1] - random_data[i, j]) % F
+                diffused[i, j] = (encrypted_image[i, j] - diffused[i, j - 1] - random_data[i, j]) % modulus
             else:
-                
-                diffused[i, j] = (encrypted_image[i, j] - diffused[i - 1, j] - random_data[i, j]) % F
+                diffused[i, j] = (encrypted_image[i, j] - diffused[i - 1, j] - random_data[i, j]) % modulus
 
     return diffused
-
 
 def encrypt_image(image, key):
     height, width = image.shape
@@ -83,17 +82,17 @@ def encrypt_image(image, key):
 
     return encrypted_image, (indices_x, indices_y, random_data)
 
-
 def decrypt_image(encrypted_image, key, encryption_data):
     indices_x, indices_y, random_data = encryption_data
 
-
     diffused_image = inverse_pixel_adaptive_diffusion(encrypted_image, random_data)
 
-    #TODO: Utilizar mismo scrambling que el paper
-    unscrambled = np.zeros_like(diffused_image)
-    unscrambled[indices_x, :] = diffused_image
-    unscrambled[:, indices_y] = unscrambled
+    # Invertir las permutaciones de scrambling
+    inv_indices_x = invert_permutation(indices_x)
+    inv_indices_y = invert_permutation(indices_y)
+
+    unscrambled = diffused_image[inv_indices_x, :]
+    unscrambled = unscrambled[:, inv_indices_y]
 
     return unscrambled
 
@@ -127,7 +126,6 @@ if __name__ == "__main__":
     image = np.array(image)
 
     # Clave de cifrado
-    #TODO: Generar clave de 256 bits, separar valores y obtener x0 y r para las dos rondas de scrambling/difusion
     key = (0.5, 3.99)  # x0, r
 
     imagen_expandida = insertar_datos_aleatorios(image)
@@ -137,6 +135,9 @@ if __name__ == "__main__":
 
     # Descifrar imagen
     decrypted_image = decrypt_image(encrypted_image, key, encryption_data)
+
+    # Remover el padding
+    decrypted_image_no_padding = quitar_datos_aleatorios(decrypted_image)
 
     # Mostrar la imagen original, cifrada y descifrada
     plt.figure(figsize=(15, 5))
@@ -152,7 +153,7 @@ if __name__ == "__main__":
     plt.axis('off')
 
     plt.subplot(1, 3, 3)
-    plt.imshow(quitar_datos_aleatorios(decrypted_image), cmap='gray')
+    plt.imshow(decrypted_image_no_padding, cmap='gray')
     plt.title('Imagen Descifrada')
     plt.axis('off')
 
@@ -160,4 +161,4 @@ if __name__ == "__main__":
     plt.show()
 
     # Mostrar histogramas
-    mostrar_histogramas(image, encrypted_image, decrypted_image)
+    mostrar_histogramas(image, encrypted_image, decrypted_image_no_padding)
