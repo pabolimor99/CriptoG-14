@@ -7,6 +7,8 @@ from util.padding import insertar_datos_aleatorios, quitar_datos_aleatorios
 from util.histo import mostrar_histogramas
 from util.cypher import encrypt_image, decrypt_image
 
+#TODO: cambiar flujo: introducir texto, generar clave, cifrar, guardar imagen cifrada y luego introducir clave para descifrar
+
 if __name__ == "__main__":
 
     image = Image.open('./images/fali.jpg').convert('L')

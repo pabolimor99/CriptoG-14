@@ -1,5 +1,7 @@
 import secrets
 
+#TODO: implementar hash para convertir texto a cadena de 256 bits
+
 def bits_to_float(bits, n_bits):
     return sum(bits[i] * 2 ** -(i + 1) for i in range(n_bits))
 
