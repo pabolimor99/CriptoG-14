@@ -1,13 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-from key_gen import generate_round_keys
 import pillow_avif
+import streamlit as st
+import tempfile
 
 def insertar_datos_aleatorios(imagen):
     alto, ancho = imagen.shape
-    R = np.random.randint(0, 256, (2, ancho), dtype=np.uint8)
-    O = np.random.randint(0, 256, (alto + 2, 2), dtype=np.uint8)
+    R = np.random.randint(0, 256, (2, ancho), dtype=np.uint32)
+    O = np.random.randint(0, 256, (alto + 2, 2), dtype=np.uint32)
     
     imagen_exp = np.vstack([R[0], imagen, R[1]])
     imagen_exp = np.hstack([O[:, 0].reshape(-1, 1), imagen_exp, O[:, 1].reshape(-1, 1)])
@@ -25,7 +26,6 @@ def logistic_sine_map(x0, r, iterations):
         seq.append(x)
     return np.array(seq)
 
-#TODO: Utilizar mismo scrambling que el paper
 def generate_scrambling_matrix(height, width, x0, r):
     seq_x = logistic_sine_map(x0, r, height)
     seq_y = logistic_sine_map(x0, r, width)
@@ -33,7 +33,6 @@ def generate_scrambling_matrix(height, width, x0, r):
     indices_y = np.argsort(seq_y)
     return indices_x, indices_y
 
-#TODO: Utilizar mismo scrambling que el paper
 def scramble_image(image, indices_x, indices_y):
     scrambled = image[indices_x, :]
     scrambled = scrambled[:, indices_y]
@@ -47,7 +46,7 @@ def invert_permutation(indices):
 
 def pixel_adaptive_diffusion(image, random_data, modulus=255):
     height, width = image.shape
-    diffused = np.copy(image).astype(np.int32)
+    diffused = np.copy(image)
     for i in range(height):
         for j in range(width):
             if i == 0 and j == 0:
@@ -60,7 +59,7 @@ def pixel_adaptive_diffusion(image, random_data, modulus=255):
 
 def inverse_pixel_adaptive_diffusion(encrypted_image, random_data, modulus=255):
     height, width = encrypted_image.shape
-    diffused = np.copy(encrypted_image).astype(np.int32)
+    diffused = np.copy(encrypted_image)
 
     for i in range(height - 1, -1, -1):
         for j in range(width - 1, -1, -1):
@@ -76,7 +75,7 @@ def inverse_pixel_adaptive_diffusion(encrypted_image, random_data, modulus=255):
 def encrypt_image(image, key):
     height, width = image.shape
     x0, r = key
-    random_data = np.random.randint(0, 256, size=(height, width), dtype=np.uint8)
+    random_data = np.random.randint(0, 256, size=(height, width), dtype=np.uint32)
 
     indices_x, indices_y = generate_scrambling_matrix(height, width, x0, r)
     scrambled_image = scramble_image(image, indices_x, indices_y)
@@ -90,8 +89,7 @@ def decrypt_image(encrypted_image, key, encryption_data):
 
     diffused_image = inverse_pixel_adaptive_diffusion(encrypted_image, random_data)
 
-    #TODO: Utilizar mismo scrambling que el paper
-
+    # Invertir las permutaciones de scrambling
     inv_indices_x = invert_permutation(indices_x)
     inv_indices_y = invert_permutation(indices_y)
 
@@ -100,74 +98,58 @@ def decrypt_image(encrypted_image, key, encryption_data):
 
     return unscrambled
 
-import secrets
-
-
 def mostrar_histogramas(imagen_original, imagen_cifrada, imagen_descifrada):
-    plt.figure(figsize=(15, 5))
+    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
 
-    plt.subplot(1, 3, 1)
-    plt.hist(imagen_original.ravel(), bins=256, range=[0, 256], color='blue', alpha=0.5)
-    plt.title('Histograma de la Imagen Original')
-    plt.xlabel('Intensidad de píxeles')
-    plt.ylabel('Frecuencia')
+    axs[0].hist(imagen_original.ravel(), bins=256, range=[0, 256], color='blue', alpha=0.5)
+    axs[0].set_title('Histograma de la Imagen Original')
+    axs[0].set_xlabel('Intensidad de píxeles')
+    axs[0].set_ylabel('Frecuencia')
 
-    plt.subplot(1, 3, 2)
-    plt.hist(imagen_cifrada.ravel(), bins=256, range=[0, 256], color='red', alpha=0.5)
-    plt.title('Histograma de la Imagen Cifrada')
-    plt.xlabel('Intensidad de píxeles')
-    plt.ylabel('Frecuencia')
+    axs[1].hist(imagen_cifrada.ravel(), bins=256, range=[0, 256], color='red', alpha=0.5)
+    axs[1].set_title('Histograma de la Imagen Cifrada')
+    axs[1].set_xlabel('Intensidad de píxeles')
+    axs[1].set_ylabel('Frecuencia')
 
-    plt.subplot(1, 3, 3)
-    plt.hist(imagen_descifrada.ravel(), bins=256, range=[0, 256], color='green', alpha=0.5)
-    plt.title('Histograma de la Imagen Descifrada')
-    plt.xlabel('Intensidad de píxeles')
-    plt.ylabel('Frecuencia')
+    axs[2].hist(imagen_descifrada.ravel(), bins=256, range=[0, 256], color='green', alpha=0.5)
+    axs[2].set_title('Histograma de la Imagen Descifrada')
+    axs[2].set_xlabel('Intensidad de píxeles')
+    axs[2].set_ylabel('Frecuencia')
 
     plt.tight_layout()
-    plt.show()
+    st.pyplot(fig)
 
-if __name__ == "__main__":
+# Streamlit Application
+st.title("Cifrado y Descifrado de Imágenes Médicas con Scrambling y Difusión")
 
-    image = Image.open('r2.avif').convert('L')
+uploaded_file = st.file_uploader("Sube una imagen", type=["png", "jpg", "jpeg", "avif"])
+
+if uploaded_file is not None:
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(uploaded_file.read())
+        image = Image.open(temp_file.name).convert('L')  # Convertir a escala de grises
     image = np.array(image)
 
-    (x1, r1), (x2, r2) = generate_round_keys()
-    key1 = (x1, r1)
-    key2 = (x2, r2)
+    # Mostrar imagen original
+    st.image(image, caption='Imagen Original', use_column_width=True, clamp=True, channels='L')
+
+    # Clave de cifrado
+    key = (0.5, 3.99)  # x0, r
 
     imagen_expandida = insertar_datos_aleatorios(image)
 
-    encrypted_image_1, encryption_data_1 = encrypt_image(imagen_expandida, key1)
+    # Cifrar imagen
+    encrypted_image, encryption_data = encrypt_image(imagen_expandida, key)
 
-    encrypted_image_2, encryption_data_2 = encrypt_image(encrypted_image_1, key2)
+    # Descifrar imagen
+    decrypted_image = decrypt_image(encrypted_image, key, encryption_data)
 
-    decrypted_image_1 = decrypt_image(encrypted_image_2, key2, encryption_data_2)
+    # Remover el padding
+    decrypted_image_no_padding = quitar_datos_aleatorios(decrypted_image)
 
-    decrypted_image_2 = decrypt_image(decrypted_image_1, key1, encryption_data_1)
-
-    decrypted_image_no_padding = quitar_datos_aleatorios(decrypted_image_2)
-
-    plt.figure(figsize=(15, 5))
-
-    plt.subplot(1, 3, 1)
-    plt.imshow(image, cmap='gray')
-    plt.title('Imagen Original')
-    plt.axis('off')
-
-    plt.subplot(1, 3, 2)
-    plt.imshow(encrypted_image_2, cmap='gray')
-    plt.title('Imagen Cifrada (2 rondas)')
-    plt.axis('off')
-
-    plt.subplot(1, 3, 3)
-    plt.imshow(decrypted_image_no_padding, cmap='gray')
-    plt.title('Imagen Descifrada')
-    plt.axis('off')
-
-    plt.tight_layout()
-    plt.show()
+    # Mostrar la imagen cifrada y descifrada
+    st.image(encrypted_image, caption='Imagen Cifrada', use_container_width=True, clamp=True, channels='L')
+    st.image(decrypted_image_no_padding, caption='Imagen Descifrada', use_container_width=True, clamp=True, channels='L')
 
     # Mostrar histogramas
-    mostrar_histogramas(image, encrypted_image_2, decrypted_image_no_padding)
-
+    mostrar_histogramas(image, encrypted_image, decrypted_image_no_padding)
