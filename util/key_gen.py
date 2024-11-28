@@ -1,6 +1,11 @@
-import secrets
+import hashlib
 
-#TODO: implementar hash para convertir texto a cadena de 256 bits
+def text_to_key():
+
+    text = input("Introduzca la clave: ").encode('utf-8')
+
+    return hashlib.sha256(text)
+
 
 def bits_to_float(bits, n_bits):
     return sum(bits[i] * 2 ** -(i + 1) for i in range(n_bits))
@@ -10,9 +15,9 @@ def bits_to_int(bits, n_bits):
 
 def generate_key():
 
-    key = secrets.token_bytes(32)
+    key = text_to_key()
 
-    bit_stream = [int(bit) for byte in key for bit in format(byte, '08b')]
+    bit_stream = [int(b) for byte in key.digest() for b in f"{byte:08b}"]
 
     x0 = bits_to_float(bit_stream[:52], 52)
     r = bits_to_float(bit_stream[52:104], 52)
