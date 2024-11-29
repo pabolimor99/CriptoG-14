@@ -1,4 +1,5 @@
 import numpy as np
+from util.v1.scrambling import logistic_sine_map
 
 def pixel_adaptive_diffusion(image, random_data, modulus=256):
     """
@@ -31,3 +32,5 @@ def inverse_pixel_adaptive_diffusion(encrypted_image, random_data, modulus=256):
                 diffused[i, j] = (encrypted_image[i, j] - diffused[i - 1, j] - random_data[i, j]) % modulus
 
     return diffused.astype(np.uint8)
+
+

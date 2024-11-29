@@ -16,6 +16,8 @@ def generate_scrambling_matrix(height, width, x0, r):
     indices_y = np.argsort(seq_y)
     return indices_x, indices_y
 
+
+
 #TODO: Utilizar mismo scrambling que el paper
 def scramble_image(image, indices_x, indices_y):
     scrambled = image[indices_x, :]

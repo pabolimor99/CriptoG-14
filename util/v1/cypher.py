@@ -1,7 +1,8 @@
-from util.difusion import pixel_adaptive_diffusion, inverse_pixel_adaptive_diffusion
-from util.scrambling import generate_scrambling_matrix, scramble_image, invert_permutation
-import numpy as np
 
+from util.v1.difusion import pixel_adaptive_diffusion, inverse_pixel_adaptive_diffusion
+from util.v1.scrambling import generate_scrambling_matrix, scramble_image, invert_permutation
+import numpy as np
+#from util.scrambling import gen_matrix, scramble_image, descramble_image
 def encrypt_image(image, key):
     height, width = image.shape
     x0, r = key
@@ -28,3 +29,6 @@ def decrypt_image(encrypted_image, key, encryption_data):
     unscrambled = unscrambled[:, inv_indices_y]
 
     return unscrambled
+
+
+
