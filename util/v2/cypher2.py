@@ -22,7 +22,12 @@ def encrypt_image(image, key):
     return encrypted_image, S, Q
 
 
-def decrypt_image(encrypted_image, key, S, Q):
+def decrypt_image(encrypted_image, key):
+    height, width = encrypted_image.shape
+    x0, r= key
+    
+    S = gen_matrix(height, width, x0, r)
+    Q = generate_diffusion_matrix(height, width, x0, r)
     # Revertir difusión adaptativa
     diffused_image = inverse_pixel_adaptive_diffusion(encrypted_image, Q)
 

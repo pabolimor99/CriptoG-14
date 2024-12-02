@@ -15,11 +15,11 @@ from util.anonimize import save_dicom
 st.title("Cifrado y Descifrado de Imágenes Médicas con Scrambling y Difusión")
 
 # Solicitar clave de cifrado
-clave = st.text_input("Introduzca la clave para cifrar/descifrar:", type="password")
+clave_cifrado = st.text_input("Introduzca la clave para cifrar:", type="password")
 
 uploaded_file = st.file_uploader("Sube una imagen DICOM", type=["dcm"])
 
-if uploaded_file is not None and clave:
+if uploaded_file is not None and clave_cifrado:
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_file.write(uploaded_file.read())
         dicom_path = temp_file.name
@@ -37,7 +37,7 @@ if uploaded_file is not None and clave:
     st.image(image, caption='Imagen Original', width=300, clamp=True, channels='L')
 
     # Generar claves de cifrado
-    (x1, r1), (x2, r2) = generate_round_keys(clave)
+    (x1, r1), (x2, r2) = generate_round_keys(clave_cifrado)
     key1 = (x1, r1)
     key2 = (x2, r2)
 
@@ -50,35 +50,45 @@ if uploaded_file is not None and clave:
     # Segunda ronda de cifrado
     encrypted_image_2, S2, Q2 = encrypt_image(encrypted_image_1, key2)
 
-    # Segunda ronda de descifrado
-    decrypted_image_1 = decrypt_image(encrypted_image_2, key2, S2, Q2)
-
-    # Primera ronda de descifrado
-    decrypted_image_2 = decrypt_image(decrypted_image_1, key1, S1, Q1)
-
-    # Quitar padding de la imagen descifrada
-    decrypted_image_no_padding = quitar_datos_aleatorios(decrypted_image_2)
-
-    # Mostrar la imagen cifrada y descifrada
+    # Mostrar la imagen cifrada
     st.image(encrypted_image_2, caption='Imagen Cifrada (2 rondas)', width=300, clamp=True, channels='L')
-    st.image(decrypted_image_no_padding, caption='Imagen Descifrada', width=300, clamp=True, channels='L')
 
-    # Mostrar histogramas
-    fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-    ax[0].hist(image.ravel(), bins=256, range=[0, 256], color='blue', alpha=0.5)
-    ax[0].set_title('Histograma de la Imagen Original')
-    ax[0].set_xlabel('Intensidad de píxeles')
-    ax[0].set_ylabel('Frecuencia')
+    # Solicitar clave de descifrado
+    clave_descifrado = st.text_input("Introduzca la clave para descifrar:", type="password")
 
-    ax[1].hist(encrypted_image_2.ravel(), bins=256, range=[0, 256], color='red', alpha=0.5)
-    ax[1].set_title('Histograma de la Imagen Cifrada')
-    ax[1].set_xlabel('Intensidad de píxeles')
-    ax[1].set_ylabel('Frecuencia')
+    if clave_descifrado:
+        (x1_d, r1_d), (x2_d, r2_d) = generate_round_keys(clave_descifrado)
+        key1_d = (x1_d, r1_d)
+        key2_d = (x2_d, r2_d)
 
-    ax[2].hist(decrypted_image_no_padding.ravel(), bins=256, range=[0, 256], color='green', alpha=0.5)
-    ax[2].set_title('Histograma de la Imagen Descifrada')
-    ax[2].set_xlabel('Intensidad de píxeles')
-    ax[2].set_ylabel('Frecuencia')
+        # Segunda ronda de descifrado
+        decrypted_image_1 = decrypt_image(encrypted_image_2, key2_d)
 
-    plt.subplots_adjust(wspace=0.3)
-    st.pyplot(fig)
+        # Primera ronda de descifrado
+        decrypted_image_2 = decrypt_image(decrypted_image_1, key1_d)
+
+        # Quitar padding de la imagen descifrada
+        decrypted_image_no_padding = quitar_datos_aleatorios(decrypted_image_2)
+
+        # Mostrar la imagen descifrada
+        st.image(decrypted_image_no_padding, caption='Imagen Descifrada', width=300, clamp=True, channels='L')
+
+        # Mostrar histogramas
+        fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+        ax[0].hist(image.ravel(), bins=256, range=[0, 256], color='blue', alpha=0.5)
+        ax[0].set_title('Histograma de la Imagen Original')
+        ax[0].set_xlabel('Intensidad de píxeles')
+        ax[0].set_ylabel('Frecuencia')
+
+        ax[1].hist(encrypted_image_2.ravel(), bins=256, range=[0, 256], color='red', alpha=0.5)
+        ax[1].set_title('Histograma de la Imagen Cifrada')
+        ax[1].set_xlabel('Intensidad de píxeles')
+        ax[1].set_ylabel('Frecuencia')
+
+        ax[2].hist(decrypted_image_no_padding.ravel(), bins=256, range=[0, 256], color='green', alpha=0.5)
+        ax[2].set_title('Histograma de la Imagen Descifrada')
+        ax[2].set_xlabel('Intensidad de píxeles')
+        ax[2].set_ylabel('Frecuencia')
+
+        plt.subplots_adjust(wspace=0.3)
+        st.pyplot(fig)
