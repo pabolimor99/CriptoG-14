@@ -31,7 +31,7 @@ def read_dicom(path):
     # Normalización si el rango de valores excede 8 bits
     if max_val > 255:
         print("Normalizando la imagen a 8 bits...")
-        image = ((image - image.min()) / (max_val - image.min()) * 255).astype(np.uint8)
+        image = ((image - image.min()) / (max_val - image.min()) * 255).astype(np.uint16)
     
     # Retornar la imagen normalizada y el rango original
     return image, data, image.min(), image.max()

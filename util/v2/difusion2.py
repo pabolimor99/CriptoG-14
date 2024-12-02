@@ -31,7 +31,7 @@ def pixel_adaptive_diffusion(image, Q):
             else:
                 # c[i,j] = (T[i,j] + c[i-1,j] + Q[i,j]) mod F
                 diffused[i, j] = modulo(image[i, j] + diffused[i - 1, j] + Q[i, j], F)
-    return diffused.astype(np.uint8)
+    return diffused.astype(np.uint16)
 
 def inverse_pixel_adaptive_diffusion(diffused, Q):
     F = 256
@@ -51,7 +51,7 @@ def inverse_pixel_adaptive_diffusion(diffused, Q):
             else:
                 # T[i,j] = (c[i,j] - c[i-1,j] - Q[i,j]) mod F
                 original[i, j] = modulo(diffused[i, j] - diffused[i - 1, j] - Q[i, j], F)
-    return original.astype(np.uint8)
+    return original.astype(np.uint16)
 
 def modulo(val, mod):
 

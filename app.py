@@ -33,8 +33,17 @@ if uploaded_file is not None and clave_cifrado:
     if max_val > 255:
         image = ((image - image.min()) / (max_val - image.min()) * 255).astype(np.uint8)
 
-    # Mostrar imagen original
-    st.image(image, caption='Imagen Original', width=300, clamp=True, channels='L')
+    # Mostrar imagen original y su histograma
+    col1, col2 = st.columns(2)
+    with col1:
+        st.image(image, caption='Imagen Original', width=300, clamp=True, channels='L')
+    with col2:
+        fig, ax = plt.subplots()
+        ax.hist(image.ravel(), bins=256, range=[0, 256], color='blue', alpha=0.5)
+        ax.set_title('Histograma de la Imagen Original')
+        ax.set_xlabel('Intensidad de píxeles')
+        ax.set_ylabel('Frecuencia')
+        st.pyplot(fig)
 
     # Generar claves de cifrado
     (x1, r1), (x2, r2) = generate_round_keys(clave_cifrado)
@@ -50,45 +59,68 @@ if uploaded_file is not None and clave_cifrado:
     # Segunda ronda de cifrado
     encrypted_image_2, S2, Q2 = encrypt_image(encrypted_image_1, key2)
 
-    # Mostrar la imagen cifrada
-    st.image(encrypted_image_2, caption='Imagen Cifrada (2 rondas)', width=300, clamp=True, channels='L')
+    # Guardar la imagen cifrada como archivo DICOM
+    output_path = dicom_path.replace(".dcm", "_encrypted.dcm")
+    save_dicom(encrypted_image_2, data, output_path)
 
-    # Solicitar clave de descifrado
-    clave_descifrado = st.text_input("Introduzca la clave para descifrar:", type="password")
+    # Mostrar la imagen cifrada y su histograma
+    col3, col4 = st.columns(2)
+    with col3:
+        st.image(encrypted_image_2, caption='Imagen Cifrada (2 rondas)', width=300, clamp=True, channels='L')
+    with col4:
+        fig, ax = plt.subplots()
+        ax.hist(encrypted_image_2.ravel(), bins=256, range=[0, 256], color='red', alpha=0.5)
+        ax.set_title('Histograma de la Imagen Cifrada')
+        ax.set_xlabel('Intensidad de píxeles')
+        ax.set_ylabel('Frecuencia')
+        st.pyplot(fig)
 
-    if clave_descifrado:
-        (x1_d, r1_d), (x2_d, r2_d) = generate_round_keys(clave_descifrado)
-        key1_d = (x1_d, r1_d)
-        key2_d = (x2_d, r2_d)
+    # Enlace para descargar la imagen cifrada en formato DICOM
+    with open(output_path, "rb") as file:
+        btn = st.download_button(
+            label="Descargar imagen cifrada en formato DICOM",
+            data=file,
+            file_name="imagen_cifrada.dcm",
+            mime="application/dicom"
+        )
 
-        # Segunda ronda de descifrado
-        decrypted_image_1 = decrypt_image(encrypted_image_2, key2_d)
+# Sección para descifrar la imagen
+st.header("Descifrar Imagen")
 
-        # Primera ronda de descifrado
-        decrypted_image_2 = decrypt_image(decrypted_image_1, key1_d)
+uploaded_encrypted_file = st.file_uploader("Sube una imagen DICOM cifrada", type=["dcm"])
+clave_descifrado = st.text_input("Introduzca la clave para descifrar:", type="password")
 
-        # Quitar padding de la imagen descifrada
-        decrypted_image_no_padding = quitar_datos_aleatorios(decrypted_image_2)
+if uploaded_encrypted_file is not None and clave_descifrado:
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(uploaded_encrypted_file.read())
+        encrypted_dicom_path = temp_file.name
 
-        # Mostrar la imagen descifrada
+    # Leer la imagen DICOM cifrada
+    encrypted_data = pydicom.dcmread(encrypted_dicom_path)
+    encrypted_image = encrypted_data.pixel_array
+
+    # Generar claves de descifrado
+    (x1_d, r1_d), (x2_d, r2_d) = generate_round_keys(clave_descifrado)
+    key1_d = (x1_d, r1_d)
+    key2_d = (x2_d, r2_d)
+
+    # Segunda ronda de descifrado
+    decrypted_image_1 = decrypt_image(encrypted_image, key2_d)
+
+    # Primera ronda de descifrado
+    decrypted_image_2 = decrypt_image(decrypted_image_1, key1_d)
+
+    # Remover el padding
+    decrypted_image_no_padding = quitar_datos_aleatorios(decrypted_image_2)
+
+    # Mostrar la imagen descifrada y su histograma
+    col5, col6 = st.columns(2)
+    with col5:
         st.image(decrypted_image_no_padding, caption='Imagen Descifrada', width=300, clamp=True, channels='L')
-
-        # Mostrar histogramas
-        fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-        ax[0].hist(image.ravel(), bins=256, range=[0, 256], color='blue', alpha=0.5)
-        ax[0].set_title('Histograma de la Imagen Original')
-        ax[0].set_xlabel('Intensidad de píxeles')
-        ax[0].set_ylabel('Frecuencia')
-
-        ax[1].hist(encrypted_image_2.ravel(), bins=256, range=[0, 256], color='red', alpha=0.5)
-        ax[1].set_title('Histograma de la Imagen Cifrada')
-        ax[1].set_xlabel('Intensidad de píxeles')
-        ax[1].set_ylabel('Frecuencia')
-
-        ax[2].hist(decrypted_image_no_padding.ravel(), bins=256, range=[0, 256], color='green', alpha=0.5)
-        ax[2].set_title('Histograma de la Imagen Descifrada')
-        ax[2].set_xlabel('Intensidad de píxeles')
-        ax[2].set_ylabel('Frecuencia')
-
-        plt.subplots_adjust(wspace=0.3)
+    with col6:
+        fig, ax = plt.subplots()
+        ax.hist(decrypted_image_no_padding.ravel(), bins=256, range=[0, 256], color='green', alpha=0.5)
+        ax.set_title('Histograma de la Imagen Descifrada')
+        ax.set_xlabel('Intensidad de píxeles')
+        ax.set_ylabel('Frecuencia')
         st.pyplot(fig)
