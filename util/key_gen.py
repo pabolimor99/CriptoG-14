@@ -1,4 +1,8 @@
-import secrets
+import hashlib
+
+def text_to_key(text):
+    return hashlib.sha256(text.encode('utf-8'))
+
 
 def bits_to_float(bits, n_bits):
     return sum(bits[i] * 2 ** -(i + 1) for i in range(n_bits))
@@ -6,11 +10,11 @@ def bits_to_float(bits, n_bits):
 def bits_to_int(bits, n_bits):
     return sum(bits[i] * 2 ** (i) for i in range(n_bits))
 
-def generate_key():
+def generate_key(text):
 
-    key = secrets.token_bytes(32)
+    key = text_to_key(text)
 
-    bit_stream = [int(bit) for byte in key for bit in format(byte, '08b')]
+    bit_stream = [int(b) for byte in key.digest() for b in f"{byte:08b}"]
 
     x0 = bits_to_float(bit_stream[:52], 52)
     r = bits_to_float(bit_stream[52:104], 52)
@@ -23,9 +27,9 @@ def generate_key():
 
     return x0, r, d1, d2, r1, r2
 
-def generate_round_keys():
+def generate_round_keys(text):
 
-    x0, r, d1, d2, r1, r2 = generate_key()
+    x0, r, d1, d2, r1, r2 = generate_key(text)
    
     x0_1 = (d1 * (x0 + r1)) % 1
     r_1 = (d1 * (r + r1)) % 4
