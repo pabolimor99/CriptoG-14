@@ -31,21 +31,23 @@ def read_dicom(path):
     # Normalización si el rango de valores excede 8 bits
     if max_val > 255:
         print("Normalizando la imagen a 8 bits...")
-        image = ((image - image.min()) / (max_val - image.min()) * 255).astype(np.uint8)
+        image = ((image - image.min()) / (max_val - image.min()) * 255).astype(np.uint16)
     
     # Retornar la imagen normalizada y el rango original
     return image, data, image.min(), image.max()
 
-if __name__ == "__main__":
+if __name__ == "_main_":
     # Ruta del archivo DICOM
     dicom_path = './images/I1000000.dcm'
     output_path = './images/I1000000_processed.dcm'
+
+    text = input("Ingrese el texto para generar las claves: ")
 
     # Leer la imagen y convertirla a escala de grises si es necesario
     image, original_dicom, original_min, original_max = read_dicom(dicom_path)
 
     # Generar claves para dos rondas
-    (x1, r1), (x2, r2) = generate_round_keys()
+    (x1, r1), (x2, r2) = generate_round_keys(text)
     key1 = (x1, r1)
     key2 = (x2, r2)
 
