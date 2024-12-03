@@ -56,4 +56,3 @@ def inverse_pixel_adaptive_diffusion(diffused, Q):
 def modulo(val, mod):
 
     return ((val % mod) + mod) % mod
-
