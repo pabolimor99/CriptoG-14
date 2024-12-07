@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-import pillow_avif
 import streamlit as st
 import tempfile
 import pydicom
