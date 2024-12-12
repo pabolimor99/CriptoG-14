@@ -126,3 +126,16 @@ if uploaded_encrypted_file is not None and clave_descifrado:
         ax.set_xlabel('Intensidad de píxeles')
         ax.set_ylabel('Frecuencia')
         st.pyplot(fig)
+ 
+    decrypted_dicom_path = encrypted_dicom_path.replace("_encrypted.dcm", "_decrypted.dcm")
+    save_dicom(decrypted_image_no_padding, encrypted_data, decrypted_dicom_path)
+
+    # Proporcionar un enlace para descargar la imagen descifrada
+    with open(decrypted_dicom_path, "rb") as file:
+        btn = st.download_button(
+            label="Descargar Imagen Descifrada",
+            data=file,
+            file_name="imagen_descifrada.dcm",
+            mime="application/dicom"
+        )
+
