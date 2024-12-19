@@ -13,27 +13,27 @@ def read_dicom(path):
     """
     Lee una imagen DICOM, verifica su tipo y realiza normalización a 8 bits si es necesario.
     """
-    # Leer el archivo DICOM
-    data = pydicom.dcmread(path)
-    image = data.pixel_array  # Extraer la matriz de píxeles
 
-    # Comprobación del tipo de imagen
+    data = pydicom.dcmread(path)
+    image = data.pixel_array 
+
+
     if hasattr(data, "PhotometricInterpretation"):
         print(f"Photometric Interpretation: {data.PhotometricInterpretation}")
 
     if hasattr(data, "BitsAllocated"):
         print(f"Bits Allocated: {data.BitsAllocated}")
 
-    # Comprobación del valor máximo
+
     max_val = image.max()
     print(f"El valor máximo es: {max_val}")
 
-    # Normalización si el rango de valores excede 8 bits
+
     if max_val > 255:
         print("Normalizando la imagen a 8 bits...")
         image = ((image - image.min()) / (max_val - image.min()) * 255).astype(np.uint16)
     
-    # Retornar la imagen normalizada y el rango original
+
     return image, data, image.min(), image.max()
 
 if __name__ == "_main_":
