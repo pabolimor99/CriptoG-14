@@ -2,4 +2,6 @@ Aplicación práctica del un algoritmo para el cifrado cifrado de imágenes méd
 
 Puedes ver la memoria [aquí](doc/Proyecto_C.pdf).
 
+Para el uso de la aplicación, la carpeta images contiene imágenes en formato DICOM. Tenemos dos: [la imagen completa](images/I1000000.dcm) y un [recorte](images/recorte.dcm) realizado para hacer más rápido el procesamiento.
+
 
