@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     dicom_file = "images\I1000000.dcm"
     
-    crop_size = (1350, 2000)
+    crop_size = (512, 512)
     
     output_file = "images/imagen_recortada.dcm"
     
