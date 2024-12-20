@@ -1,4 +1,4 @@
-Aplicación práctica del un algoritmo para el cifrado cifrado de imágenes médicas, basado en [Hua, Z., Jin, L., Huang, H., y Huang, Y. (2019)](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8977567).
+Aplicación práctica del un algoritmo para el cifrado cifrado de imágenes médicas, basado en [Hua, Z., Jin, L., Huang, H., y Huang, Y. (2019)](https://viplab.cis.um.edu.mo/publications/journal/Medical%20image%20encryption%20using%20high-speed%20scrambling%20and%20pixel%20adaptive%20diffusion.pdf).
 
 Puedes ver la memoria [aquí](doc/Proyecto_C.pdf).
 
